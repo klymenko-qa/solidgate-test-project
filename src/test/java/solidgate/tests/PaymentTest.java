@@ -19,6 +19,9 @@ public class PaymentTest {
     private WebDriver driver;
     private Assertion assertion;
     private SolidgateApiClient apiClient;
+    private String orderId;
+    private int expectedAmount;
+    private String expectedCurrency;
     private static final Logger logger = LoggerFactory.getLogger(PaymentTest.class);
 
     @BeforeClass
@@ -30,11 +33,11 @@ public class PaymentTest {
         assertion = new Assertion();
     }
 
-    @Test
-    public void testPaymentPage() throws Exception {
+    @Test(priority = 1)
+    public void createPaymentPageAndPerformPaymentTest() throws Exception {
         // Create Payment page
         PaymentPageRequest paymentPageRequest = PaymentPageRequest.getRandomPaymentPageRequest();
-        String orderId = paymentPageRequest.getOrder().getOrder_id();
+        orderId = paymentPageRequest.getOrder().getOrder_id();
 
         PaymentPageResponse paymentPageResponse = apiClient.createPaymentPage(paymentPageRequest);
 
@@ -48,8 +51,8 @@ public class PaymentTest {
         PaymentPage paymentPage = new PaymentPage(driver);
 
         // Get amount and currency for further validation
-        int expectedAmount = paymentPage.getAmount();
-        String expectedCurrency = paymentPage.getCurrency();
+        expectedAmount = paymentPage.getAmount();
+        expectedCurrency = paymentPage.getCurrency();
 
         // Fill in payment card properties
         String cardNumber = "4067429974719265";
@@ -61,7 +64,10 @@ public class PaymentTest {
         String currentUrl = driver.getCurrentUrl();
         String expectedUrl = paymentPageRequest.getOrder().getSuccess_url();
         assertion.assertEquals(currentUrl, expectedUrl, "Success URL does not match");
+    }
 
+    @Test(priority = 2, dependsOnMethods = "createPaymentPageAndPerformPaymentTest")
+    public void checkOrderStatusTest() throws Exception {
         // Check Order status and properties
         JsonNode orderStatus = apiClient.checkOrderStatus(orderId);
 
