@@ -4,10 +4,9 @@ import solidgate.api.SolidgateApiClient;
 import solidgate.models.PaymentPageRequest;
 import solidgate.models.PaymentPageResponse;
 import solidgate.web.pages.PaymentPage;
+import solidgate.web.driver.DriverFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.AfterClass;
@@ -24,18 +23,7 @@ public class PaymentTest {
 
     @BeforeClass
     public void setUp() {
-        System.setProperty("webdriver.chrome.driver", "drivers/chromedriver");
-
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--ignore-certificate-errors");
-        options.addArguments("--disable-popup-blocking");
-        options.addArguments("--whitelisted-ips");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-extensions");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--remote-allow-origins=*");
-
-        driver = new ChromeDriver(options);
+        driver = DriverFactory.createChromeDriver();
         String publicKey = "api_pk_c999f213_a26d_490d_993f_4e2bc848763c";
         String secretKey = "api_sk_346b1fb4_c18f_4fc1_a800_5f6e4256c9a1";
         apiClient = new SolidgateApiClient(publicKey, secretKey);
@@ -44,7 +32,7 @@ public class PaymentTest {
 
     @Test
     public void testPaymentPage() throws Exception {
-        //Create Payment page
+        // Create Payment page
         PaymentPageRequest paymentPageRequest = PaymentPageRequest.getRandomPaymentPageRequest();
         String orderId = paymentPageRequest.getOrder().getOrder_id();
 
@@ -54,27 +42,27 @@ public class PaymentTest {
         logger.info("Payment Page URL: {}", paymentPageUrl);
         logger.info("Order Id: {}", orderId);
 
-        //Navigate to the created page
+        // Navigate to the created page
         driver.get(paymentPageUrl);
 
         PaymentPage paymentPage = new PaymentPage(driver);
 
-        //Get amount and currency for further validation
+        // Get amount and currency for further validation
         int expectedAmount = paymentPage.getAmount();
         String expectedCurrency = paymentPage.getCurrency();
 
-        //Fill in payment card properties
+        // Fill in payment card properties
         String cardNumber = "4067429974719265";
         String expiryDate = "12/25";
         String cvv = "123";
-        paymentPage.fillInPayment(cardNumber, expiryDate, cvv);
+        paymentPage.fillInAndSubmitPayment(cardNumber, expiryDate, cvv);
 
-        //Check that payment was successful
+        // Check that payment was successful
         String currentUrl = driver.getCurrentUrl();
         String expectedUrl = paymentPageRequest.getOrder().getSuccess_url();
         assertion.assertEquals(currentUrl, expectedUrl, "Success URL does not match");
 
-        //Check Order status and properties
+        // Check Order status and properties
         JsonNode orderStatus = apiClient.checkOrderStatus(orderId);
 
         int actualAmount = orderStatus.path("order").path("amount").asInt();
@@ -91,7 +79,6 @@ public class PaymentTest {
         assertion.assertEquals(actualStatus, "auth_ok", "Status does not match");
 
         logger.info("Order status check passed: amount = {}, currency = {}, status = {}", actualAmount, actualCurrency, actualStatus);
-
     }
 
     @AfterClass

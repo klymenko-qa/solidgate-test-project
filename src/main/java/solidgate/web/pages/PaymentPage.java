@@ -28,7 +28,7 @@ public class PaymentPage {
         PageFactory.initElements(driver, this);
     }
 
-    public void fillInPayment(String cardNumber, String expiryDate, String cvv) {
+    public void fillInAndSubmitPayment(String cardNumber, String expiryDate, String cvv) {
         driver.findElement(cardNumberField).sendKeys(cardNumber);
         driver.findElement(cardExpiryField).sendKeys(expiryDate);
         driver.findElement(cvvField).sendKeys(cvv);
